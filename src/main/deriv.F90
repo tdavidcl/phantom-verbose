@@ -87,7 +87,7 @@ subroutine derivs(icall,npart,nactive,xyzh,vxyzu,fxyzu,fext,divcurlv,divcurlB,&
  integer                     :: ierr,i
  real(kind=4)                :: t1,tcpu1,tlast,tcpulast
 
-  print *,'--- derivs called with icall',icall
+  print *,'-> begin --- derivs called with icall',icall
 
  t1    = 0.
  tcpu1 = 0.
@@ -207,6 +207,7 @@ subroutine derivs(icall,npart,nactive,xyzh,vxyzu,fxyzu,fext,divcurlv,divcurlB,&
 
  call do_timing('total',t1,tcpu1,lunit=iprint)
 
+ print *,'-> end --- derivs called with icall',icall
 end subroutine derivs
 
 !--------------------------------------
