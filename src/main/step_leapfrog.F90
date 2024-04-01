@@ -366,7 +366,7 @@ subroutine step(npart,nactive,t,dtsph,dtextforce,dtnew)
     if (gr) vpred = vxyzu ! Need primitive utherm as a guess in cons2prim
     dt_too_small = .false.
     
-    print *,'--- call 3 call derivs(1,npart,nactive,xyzh,vpred,fxyzu,f'
+    print *,'--- call 3 call derivs(icall = 1,npart,nactive,xyzh,vxyzu = vpred,fxyzu,f'
     call derivs(1,npart,nactive,xyzh,vpred,fxyzu,fext,divcurlv,&
                 divcurlB,Bpred,dBevol,radpred,drad,radprop,dustproppred,ddustprop,&
                 dustpred,ddustevol,dustfrac,eos_vars,timei,dtsph,dtnew,&
