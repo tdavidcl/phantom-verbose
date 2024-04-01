@@ -307,6 +307,7 @@ subroutine densityiterate(icall,npart,nactive,xyzh,vxyzu,divcurlv,divcurlB,Bevol
 
  !$omp do schedule(runtime)
  over_cells: do icell=1,int(ncells)
+    print *,'--- over_cells: do icell=1,int(ncells)',i
     i = ifirstincell(icell)
 
     !--skip empty cells AND inactive cells
@@ -340,7 +341,9 @@ subroutine densityiterate(icall,npart,nactive,xyzh,vxyzu,divcurlv,divcurlB,Bevol
           call send_cell(cell,remote_export,irequestsend,xsendbuf,cell_counters,mpitype)  ! send the cell to remote
        endif
     endif
+    
 
+    print *,'--- call 1 compute_cell(cell,listneigh,nneigh,getdv,getdB,Bevol,xyzh,vxyzu,fxyzu,fext,xyzcache,rad)'
     call compute_cell(cell,listneigh,nneigh,getdv,getdB,Bevol,xyzh,vxyzu,fxyzu,fext,xyzcache,rad)
 
     if (do_export) then
@@ -374,6 +377,7 @@ subroutine densityiterate(icall,npart,nactive,xyzh,vxyzu,divcurlv,divcurlB,Bevol
                 nrelink = nrelink + 1
              endif
 
+             print *,'--- call 2 compute_cell(cell,listneigh,nneigh,getdv,getdB,Bevol,xyzh,vxyzu,fxyzu,fext,xyzcache,rad)'
              call compute_cell(cell,listneigh,nneigh,getdv,getdB,Bevol,xyzh,vxyzu,fxyzu,fext,xyzcache,rad)
 
              if (do_export) then
@@ -384,6 +388,8 @@ subroutine densityiterate(icall,npart,nactive,xyzh,vxyzu,divcurlv,divcurlB,Bevol
           endif
        enddo local_its
        if (.not. do_export) then
+          
+          print *,'--- call store_results(icall,cell ...'
           call store_results(icall,cell,getdv,getdB,realviscosity,stressmax,xyzh,gradh,divcurlv, &
                divcurlB,alphaind,dvdx,vxyzu,&
                dustfrac,rhomax,nneightry,nneighact,maxneightry,maxneighact,np,ncalc,radprop)
@@ -444,6 +450,7 @@ subroutine densityiterate(icall,npart,nactive,xyzh,vxyzu,divcurlv,divcurlB,Bevol
           call get_neighbour_list(-1,listneigh,nneigh,xyzh,xyzcache,isizecellcache,getj=.false., &
                                   cell_xpos=cell%xpos,cell_xsizei=cell%xsizei,cell_rcuti=cell%rcuti)
 
+          print *,'--- call 3 compute_cell(cell,listneigh,nneigh,getdv,getdB,Bevol,xyzh,vxyzu,fxyzu,fext,xyzcache,rad)'
           call compute_cell(cell,listneigh,nneigh,getdv,getdB,Bevol,xyzh,vxyzu,fxyzu,fext,xyzcache,rad)
 
           remote_export = .false.
@@ -504,11 +511,13 @@ subroutine densityiterate(icall,npart,nactive,xyzh,vxyzu,divcurlv,divcurlB,Bevol
              enddo
              call reserve_stack(stack_redo,cell%waiting_index)
              call send_cell(cell,remote_export,irequestsend,xsendbuf,cell_counters,mpitype) ! send the cell to remote
-
+             
+             print *,'--- call 4 compute_cell(cell,listneigh,nneigh,getdv,getdB,Bevol,xyzh,vxyzu,fxyzu,fext,xyzcache,rad)'
              call compute_cell(cell,listneigh,nneigh,getdv,getdB,Bevol,xyzh,vxyzu,fxyzu,fext,xyzcache,rad)
 
              call write_cell(stack_redo,cell)
           else
+             print *,'--- call store_results(icall,cell ...'
              call store_results(icall,cell,getdv,getdB,realviscosity,stressmax,xyzh,gradh,divcurlv, &
                   divcurlB,alphaind,dvdx,vxyzu, &
                   dustfrac,rhomax,nneightry,nneighact,maxneightry,maxneighact,np,ncalc,radprop)
@@ -629,6 +638,11 @@ pure subroutine get_density_sums(i,xpartveci,hi,hi1,hi21,iamtypei,iamgasi,iamdus
  real                        :: rhoi, rhoj
  logical                     :: same_type,gas_gas,iamdustj
  real                        :: dradenij
+ logical                     :: rhosumidv
+ logical                     :: rhosumida
+
+ rhosumidv = .true.
+ rhosumida = .true.
 
  rhosum(:) = 0.
  if (ignoreself) then
@@ -656,6 +670,7 @@ pure subroutine get_density_sums(i,xpartveci,hi,hi1,hi21,iamtypei,iamgasi,iamdus
  endif
 
  loop_over_neigh: do n = 1,nneigh
+    print *,'--- loop_over_neigh: do n = 1,nneigh'
 
     j = listneigh(n)
     !--do self contribution separately to avoid problems with 1/sqrt(0.)
@@ -765,6 +780,12 @@ pure subroutine get_density_sums(i,xpartveci,hi,hi1,hi21,iamtypei,iamgasi,iamdus
                 rhosum(idivvi) = rhosum(idivvi) + projv
 
                 if (maxdvdx > 0 .or. ndivcurlv > 1 .or. nalpha > 1) then
+                
+                   if( rhosumidv ) then
+                   print *,'### rhosum(idv{x,y,z}d{x,y,z}i) = rhosum(idv{x,y,z}d{x,y,z}i) + dv{x,y,z}*runi{x,y,z}'
+                   rhosumidv = .false.
+                   endif
+
                    rhosum(idvxdxi) = rhosum(idvxdxi) + dvx*runix
                    rhosum(idvxdyi) = rhosum(idvxdyi) + dvx*runiy
                    rhosum(idvxdzi) = rhosum(idvxdzi) + dvx*runiz
@@ -783,6 +804,11 @@ pure subroutine get_density_sums(i,xpartveci,hi,hi1,hi21,iamtypei,iamgasi,iamdus
                       dax = fxi - fxj
                       day = fyi - fyj
                       daz = fzi - fzj
+                      
+                      if( rhosumida ) then
+                      print *,'### rhosum(ida{x,y,z}d{x,y,z}i) = rhosum(ida{x,y,z}dxi) + da{x,y,z}*runi{x,y,z}'
+                      rhosumida = .false.
+                      endif
 
                       rhosum(idaxdxi) = rhosum(idaxdxi) + dax*runix
                       rhosum(idaxdyi) = rhosum(idaxdyi) + dax*runiy
@@ -925,10 +951,15 @@ pure subroutine calculate_divcurlv_from_sums(rhosum,termnorm,divcurlvi,ndivcurlv
     !--Divvdt For switch
     if (use_exact_linear .and. abs(denom) > tiny(denom)) then
        ddenom = 1./denom
+
+       print *,'--- call exactlinear(gradaxdx,gradaxdy,gradaxdz,rhosum(idaxdxi),rhosum(idaxdyi),rhosum(idaxdzi),rmatrix,ddenom)'
        call exactlinear(gradaxdx,gradaxdy,gradaxdz,rhosum(idaxdxi),rhosum(idaxdyi),rhosum(idaxdzi),rmatrix,ddenom)
+       print *,'--- call exactlinear(gradaydx,gradaydy,gradaydz,rhosum(idaydxi),rhosum(idaydyi),rhosum(idaydzi),rmatrix,ddenom)'
        call exactlinear(gradaydx,gradaydy,gradaydz,rhosum(idaydxi),rhosum(idaydyi),rhosum(idaydzi),rmatrix,ddenom)
+       print *,'--- call exactlinear(gradazdx,gradazdy,gradazdz,rhosum(idazdxi),rhosum(idazdyi),rhosum(idazdzi),rmatrix,ddenom)'
        call exactlinear(gradazdx,gradazdy,gradazdz,rhosum(idazdxi),rhosum(idazdyi),rhosum(idazdzi),rmatrix,ddenom)
        div_a = -(gradaxdx + gradaydy + gradazdz)
+       print *,'### div_a = -(gradaxdx + gradaydy + gradazdz)'
 
        call exactlinear(gradvxdxi,gradvxdyi,gradvxdzi, &
                          rhosum(idvxdxi),rhosum(idvxdyi),rhosum(idvxdzi),rmatrix,ddenom)
@@ -948,6 +979,7 @@ pure subroutine calculate_divcurlv_from_sums(rhosum,termnorm,divcurlvi,ndivcurlv
        dvzdzi = -gradvzdzi
     else
        div_a = -termnorm*(rhosum(idaxdxi) + rhosum(idaydyi) + rhosum(idazdzi))
+       print *,'### div_a = -termnorm*(rhosum(idaxdxi) + rhosum(idaydyi) + rhosum(idazdzi))'
        dvxdxi = -termnorm*rhosum(idvxdxi)
        dvxdyi = -termnorm*rhosum(idvxdyi)
        dvxdzi = -termnorm*rhosum(idvxdzi)
@@ -1242,7 +1274,8 @@ pure subroutine compute_cell(cell,listneigh,nneigh,getdv,getdB,Bevol,xyzh,vxyzu,
     hi41  = hi21*hi21
 
     ignoreself = (cell%owner == id)
-
+    
+    print *,'--- over_parts: do i = 1,cell%npcell',i,'--- call get_density_sums(lli,cell%xpartvec(:,i),hi,hi1 ...'
     call get_density_sums(lli,cell%xpartvec(:,i),hi,hi1,hi21,iamtypei,iamgasi,iamdusti,&
                           listneigh,nneigh,nneighi,dxcache,xyzcache,cell%rhosums(:,i),&
                           .true.,.false.,getdv,getdB,realviscosity,&
@@ -1530,6 +1563,9 @@ subroutine store_results(icall,cell,getdv,getdb,realviscosity,stressmax,xyzh,&
  real         :: rho1i,term,denom,rhodusti(maxdustlarge)
 
  do i = 1,cell%npcell
+
+    
+    print *,'--- store_results(icall,cell,getdv -> particle'
     lli = inodeparts(cell%arr_index(i))
     hi = cell%h(i)
     rhosum = cell%rhosums(:,i)
@@ -1558,19 +1594,25 @@ subroutine store_results(icall,cell,getdv,getdb,realviscosity,stressmax,xyzh,&
        !
        !--store final results of density iteration
        !
+       print *,'### xyzh(4,lli) = hrho(rhoi,pmassi)'
        xyzh(4,lli) = hrho(rhoi,pmassi)
+       
+       print *,'### xyzh_soa(cell%arr_index(i),4) = xyzh(4,lli)'
        xyzh_soa(cell%arr_index(i),4) = xyzh(4,lli)
 
        if (xyzh(4,lli) < 0.) call fatal('densityiterate','setting negative h from hrho',i,var='rhoi',val=real(rhoi))
 
        if (maxgradh==maxp) then
+          print *,'### gradh(1,lli) = real(gradhi,kind=kind(gradh))'
           gradh(1,lli) = real(gradhi,kind=kind(gradh))
 #ifdef GRAVITY
+          print *,'### gradh(2,lli) = real(gradsofti,kind=kind(gradh))'
           gradh(2,lli) = real(gradsofti,kind=kind(gradh))
 #endif
        endif
        rhomax = max(rhomax,real(rhoi))
     else
+       print *,'### rhoi = rhoh(hi,pmassi)'
        rhoi = rhoh(hi,pmassi)
     endif
 
@@ -1598,7 +1640,9 @@ subroutine store_results(icall,cell,getdv,getdb,realviscosity,stressmax,xyzh,&
 
        term = cnormk*pmassi*gradhi*rho1i*hi41
        if (getdv) then
+          print *,'--- call calculate_rmatrix_from_sums(rhosum,denom,rmatrix,igotrmatrix)'
           call calculate_rmatrix_from_sums(rhosum,denom,rmatrix,igotrmatrix)
+          print *,'--- call calculate_divcurlv_from_sums(rhosum,term,divcurlvi,ndivcurlv,denom,rmatrix)'
           call calculate_divcurlv_from_sums(rhosum,term,divcurlvi,ndivcurlv,denom,rmatrix)
           divcurlv(1:ndivcurlv,lli) = real(divcurlvi(1:ndivcurlv),kind=kind(divcurlv)) ! save to global memory
           if (nalpha >= 3) alphaind(3,lli) = real4(divcurlvi(5))

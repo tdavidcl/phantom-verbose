@@ -13,5 +13,5 @@ sh ../scripts/writemake.sh sedov > Makefile
 make IND_TIMESTEPS=no
 make setup IND_TIMESTEPS=no
 
-./phantomsetup blast > out_phantom_setup
-./phantom blast.in > out_phantom
+./phantomsetup blast | uniq > out_phantom_setup
+./phantom blast.in | uniq > out_phantom

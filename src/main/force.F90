@@ -521,6 +521,7 @@ subroutine force(icall,npart,xyzh,vxyzu,fxyzu,divcurlv,divcurlB,Bevol,dBevol,&
        endif
     endif
 
+    print *,'--- call 5 compute_cell(cell,listneigh,nneigh,getdv,getdB,Bevol,xyzh,vxyzu,fxyzu,fext,xyzcache,rad)'
     call compute_cell(cell,listneigh,nneigh,Bevol,xyzh,vxyzu,fxyzu, &
                       iphase,divcurlv,divcurlB,alphaind,eta_nimhd,eos_vars, &
                       dustfrac,dustprop,fxyz_dragold,gradh,ibinnow_m1,ibin_wake,stressmax,xyzcache,&
@@ -573,14 +574,20 @@ subroutine force(icall,npart,xyzh,vxyzu,fxyzu,divcurlv,divcurlB,Bevol,dBevol,&
  !$omp barrier
 
  igot_remote: if (mpi .and. stack_remote%n > 0) then
+
+    
+
     !$omp do schedule(runtime)
     over_remote: do i = 1,stack_remote%n
+       print *,'--- over_remote: do i = 1,stack_remote%n',i
+
        cell = get_cell(stack_remote,i)
 
        call get_neighbour_list(-1,listneigh,nneigh,xyzh,xyzcache,maxcellcache, &
                                getj=.true.,f=cell%fgrav,&
                                cell_xpos=cell%xpos,cell_xsizei=cell%xsizei,cell_rcuti=cell%rcuti)
 
+       print *,'--- call 6 compute_cell(cell,listneigh,nneigh,getdv,getdB,Bevol,xyzh,vxyzu,fxyzu,fext,xyzcache,rad)'
        call compute_cell(cell,listneigh,nneigh,Bevol,xyzh,vxyzu,fxyzu, &
                          iphase,divcurlv,divcurlB,alphaind,eta_nimhd,eos_vars, &
                          dustfrac,dustprop,fxyz_dragold,gradh,ibinnow_m1,ibin_wake,stressmax,xyzcache,&
