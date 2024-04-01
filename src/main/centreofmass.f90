@@ -334,9 +334,13 @@ subroutine correct_bulk_motion()
  !$omp do schedule(static)
  do i=1,npart
     if (.not.isdead_or_accreted(xyzh(4,i))) then
+
+       print *,'### vxyzu(1,i) = vxyzu(1,i) - xmom'
        vxyzu(1,i) = vxyzu(1,i) - xmom
        vxyzu(2,i) = vxyzu(2,i) - ymom
        vxyzu(3,i) = vxyzu(3,i) - zmom
+
+       print *,'### fxyzu(1,i) = fxyzu(1,i) - fmeanx'
        fxyzu(1,i) = fxyzu(1,i) - fmeanx
        fxyzu(2,i) = fxyzu(2,i) - fmeany
        fxyzu(3,i) = fxyzu(3,i) - fmeanz

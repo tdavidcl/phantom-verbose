@@ -15,3 +15,6 @@ make setup IND_TIMESTEPS=no
 
 ./phantomsetup blast | uniq > out_phantom_setup
 ./phantom blast.in | uniq > out_phantom
+
+cd ..
+python3 indent_file.py

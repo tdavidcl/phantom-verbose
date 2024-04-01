@@ -588,11 +588,13 @@ subroutine startrun(infile,logfile,evfile,dumpfile,noread)
  !$omp private(i)
  do i=1,npart
     eos_vars(3,i) = -1.0 ! initial guess for temperature overridden in eos
+    print *,'### fxyzu(:,i) = 0.      ! so that div_a is 0 in first call to viscosity switch'
     fxyzu(:,i) = 0.      ! so that div_a is 0 in first call to viscosity switch
  enddo
  !$omp end parallel do
 
  do j=1,nderivinit
+    print *,'--- call 2 if (ntot > 0) call derivs(1,npart,npart,xyzh,'
     if (ntot > 0) call derivs(1,npart,npart,xyzh,vxyzu,fxyzu,fext,divcurlv,divcurlB,Bevol,dBevol,&
                               rad,drad,radprop,dustprop,ddustprop,dustevol,ddustevol,dustfrac,&
                               eos_vars,time,0.,dtnew_first,pxyzu,dens,metrics)

@@ -87,6 +87,8 @@ subroutine derivs(icall,npart,nactive,xyzh,vxyzu,fxyzu,fext,divcurlv,divcurlB,&
  integer                     :: ierr,i
  real(kind=4)                :: t1,tcpu1,tlast,tcpulast
 
+  print *,'--- derivs called with icall',icall
+
  t1    = 0.
  tcpu1 = 0.
  call get_timings(t1,tcpu1)
@@ -125,12 +127,16 @@ subroutine derivs(icall,npart,nactive,xyzh,vxyzu,fxyzu,fext,divcurlv,divcurlB,&
 ! calculate density by direct summation
 !
  if (icall==1) then
+    
+    print *,'--- call densityiterate(1,npart,nactive,xyzh,vxyz'
     call densityiterate(1,npart,nactive,xyzh,vxyzu,divcurlv,divcurlB,Bevol,&
                         stressmax,fxyzu,fext,alphaind,gradh,rad,radprop,dvdx)
     if (.not. fast_divcurlB) then
        ! Repeat the call to calculate all the non-density-related quantities in densityiterate.
        ! This needs to be separate for an accurate calculation of divcurlB which requires an up-to-date rho.
        ! if fast_divcurlB = .false., then all additional quantities are calculated during the previous call
+       
+       print *,'--- call densityiterate(3,npart,nactive,xyzh,vxyzu'
        call densityiterate(3,npart,nactive,xyzh,vxyzu,divcurlv,divcurlB,Bevol,&
                            stressmax,fxyzu,fext,alphaind,gradh,rad,radprop,dvdx)
     endif
@@ -184,6 +190,8 @@ subroutine derivs(icall,npart,nactive,xyzh,vxyzu,fxyzu,fext,divcurlv,divcurlB,&
     !$omp parallel do shared(drad,fxyzu,npart) private(i)
     do i=1,npart
        drad(:,i) = 0.
+
+       print *,'### fxyzu(4,i) = 0.'
        fxyzu(4,i) = 0.
     enddo
     !$omp end parallel do
@@ -229,6 +237,9 @@ subroutine get_derivs_global(tused,dt_new,dt)
  dti = 0.
  if (present(dt)) dti = dt
  call getused(t1)
+
+ 
+ print *,'--- call 1 derivs(1,npart,npart,xyzh,vxyzu,fxyzu,fex'
  call derivs(1,npart,npart,xyzh,vxyzu,fxyzu,fext,divcurlv,divcurlB,Bevol,dBevol,&
              rad,drad,radprop,dustprop,ddustprop,dustevol,ddustevol,dustfrac,eos_vars,&
              time,dti,dtnew,pxyzu,dens,metrics)

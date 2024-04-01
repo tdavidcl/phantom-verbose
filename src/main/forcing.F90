@@ -869,6 +869,7 @@ subroutine st_calcAccel(npart,xyzh,fxyzu)
        !  a reduction (or increase) in the stirring amplitude even after
        !  the forcing pattern has been initialised or read from a file
        !
+       print *,'### fxi = 2.*st_amplfac*st_solweightnorm*fxi'
        fxi = 2.*st_amplfac*st_solweightnorm*fxi  ! multiplication by 2.0 moved here
        fyi = 2.*st_amplfac*st_solweightnorm*fyi
        fzi = 2.*st_amplfac*st_solweightnorm*fzi
@@ -878,6 +879,7 @@ subroutine st_calcAccel(npart,xyzh,fxyzu)
        if (iactive(iphase(i))) then
 #endif
 #endif
+          print *,'### fxyzu(1,i) = fxi'
           fxyzu(1,i) = fxi
           fxyzu(2,i) = fyi
           fxyzu(3,i) = fzi
@@ -918,6 +920,7 @@ subroutine st_calcAccel(npart,xyzh,fxyzu)
        if (iactive(iphase(i))) then
 #endif
 !     vxyzu(1:ndim,i) = vxyzu(1:ndim,i) - xmom(1:ndim)
+          print *,'### fxyzu(1:ndim,i) = fxyzu(1:ndim,i) - fmean(1:ndim)'
           fxyzu(1:ndim,i) = fxyzu(1:ndim,i) - fmean(1:ndim)
 #ifdef IND_TIMESTEPS
        endif

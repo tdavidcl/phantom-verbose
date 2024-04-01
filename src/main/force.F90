@@ -1680,6 +1680,7 @@ subroutine compute_forces(i,iamgasi,iamdusti,xpartveci,hi,hi1,hi21,hi41,gradhi,g
           projsy = projsyi + projsyj
           projsz = projszi + projszj
 
+          print *,'### fsum(ifxi) = fsum(ifxi) - runix*(gradp + fgrav) - projsx'
           fsum(ifxi) = fsum(ifxi) - runix*(gradp + fgrav) - projsx
           fsum(ifyi) = fsum(ifyi) - runiy*(gradp + fgrav) - projsy
           fsum(ifzi) = fsum(ifzi) - runiz*(gradp + fgrav) - projsz
@@ -1795,6 +1796,7 @@ subroutine compute_forces(i,iamgasi,iamdusti,xpartveci,hi,hi1,hi21,hi41,gradhi,g
           !
           !  gravity between particles of different types, or between gas pairs that are hidden by a sink
           !
+          print *,'### fsum(ifxi) = fsum(ifxi) - fgrav*runix'
           fsum(ifxi) = fsum(ifxi) - fgrav*runix
           fsum(ifyi) = fsum(ifyi) - fgrav*runiy
           fsum(ifzi) = fsum(ifzi) - fgrav*runiz
@@ -1928,6 +1930,7 @@ subroutine compute_forces(i,iamgasi,iamdusti,xpartveci,hi,hi1,hi21,hi41,gradhi,g
        pmassj = massoftype(iamtypej)
        phii   = -rij1
        fgravj = fgrav*pmassj
+       print *,'### fsum(ifxi) = fsum(ifxi) - dx*fgravj'
        fsum(ifxi) = fsum(ifxi) - dx*fgravj
        fsum(ifyi) = fsum(ifyi) - dy*fgravj
        fsum(ifzi) = fsum(ifzi) - dz*fgravj
@@ -2729,6 +2732,7 @@ subroutine finish_cell_and_store_results(icall,cell,fxyzu,xyzh,vxyzu,poten,dt,dv
     !
     call get_distance_from_centre_of_mass(cell%icell,xi,yi,zi,dx,dy,dz)
     call expand_fgrav_in_taylor_series(cell%fgrav,dx,dy,dz,fxi,fyi,fzi,poti)
+    print *,'### fsum(ifxi) = fsum(ifxi) + fxi'
     fsum(ifxi) = fsum(ifxi) + fxi
     fsum(ifyi) = fsum(ifyi) + fyi
     fsum(ifzi) = fsum(ifzi) + fzi
@@ -2761,20 +2765,24 @@ subroutine finish_cell_and_store_results(icall,cell,fxyzu,xyzh,vxyzu,poten,dt,dv
        else
           frac_divB = 0.0
        endif
+       print *,'### fsum(ifxi) = fsum(ifxi) - Bxyzi(1)*divBsymmi*frac_divB'
        fsum(ifxi) = fsum(ifxi) - Bxyzi(1)*divBsymmi*frac_divB
        fsum(ifyi) = fsum(ifyi) - Bxyzi(2)*divBsymmi*frac_divB
        fsum(ifzi) = fsum(ifzi) - Bxyzi(3)*divBsymmi*frac_divB
        divBsymm(i) = real(rhoi*divBsymmi,kind=kind(divBsymm)) ! for output store div B as rho*div B
     endif
-
+   
+    print *,'### f2i = fsum(ifxi)**2 + fsum(ifyi)**2 + fsum(ifzi)**2'
     f2i = fsum(ifxi)**2 + fsum(ifyi)**2 + fsum(ifzi)**2
 
 #ifdef DRIVING
     ! force is first initialised in driving routine
+    print *,'### fxyzu(1,i) = fxyzu(1,i) + fsum(ifxi)'
     fxyzu(1,i) = fxyzu(1,i) + fsum(ifxi)
     fxyzu(2,i) = fxyzu(2,i) + fsum(ifyi)
     fxyzu(3,i) = fxyzu(3,i) + fsum(ifzi)
 #else
+    print *,'### fxyzu(1,i) = fsum(ifxi)'
     fxyzu(1,i) = fsum(ifxi)
     fxyzu(2,i) = fsum(ifyi)
     fxyzu(3,i) = fsum(ifzi)
@@ -2910,7 +2918,10 @@ subroutine finish_cell_and_store_results(icall,cell,fxyzu,xyzh,vxyzu,poten,dt,dv
              luminosity(i) = real(pmassi*fxyz4,kind=kind(luminosity))
              !fxyzu(4,i) = 0.
           else
-             if (maxvxyzu >= 4) fxyzu(4,i) = fxyz4
+             if (maxvxyzu >= 4) then
+                 print *,'### fxyzu(4,i) = fxyz4'
+                 fxyzu(4,i) = fxyz4
+             endif
           endif
        endif
 
@@ -3017,7 +3028,10 @@ subroutine finish_cell_and_store_results(icall,cell,fxyzu,xyzh,vxyzu,poten,dt,dv
           dustgasprop(3,i) = tstopint * Omega_k(i) !- Stokes number
        endif
 
-       if (maxvxyzu > 4) fxyzu(4,i) = 0.
+       if (maxvxyzu > 4) then 
+           print *,'### fxyzu(4,i) = 0.'
+           fxyzu(4,i) = 0.
+       endif
        ! timestep based on Courant condition for non-gas particles
        vsigdtc = vsigmax
        if (vsigdtc > tiny(vsigdtc)) then

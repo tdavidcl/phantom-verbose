@@ -190,6 +190,8 @@ subroutine step(npart,nactive,t,dtsph,dtextforce,dtnew)
        if (gr) then
           pxyzu(:,i) = pxyzu(:,i) + hdti*fxyzu(:,i)
        else
+
+          print *,'### vxyzu(:,i) = vxyzu(:,i) + hdti*fxyzu(:,i)'
           vxyzu(:,i) = vxyzu(:,i) + hdti*fxyzu(:,i)
        endif
 
@@ -300,6 +302,7 @@ subroutine step(npart,nactive,t,dtsph,dtextforce,dtnew)
        if (gr) then
           ppred(:,i) = pxyzu(:,i) + hdti*fxyzu(:,i)
        else
+          print *,'### vpred(:,i) = vxyzu(:,i) + hdti*fxyzu(:,i)'
           vpred(:,i) = vxyzu(:,i) + hdti*fxyzu(:,i)
        endif
 
@@ -362,7 +365,8 @@ subroutine step(npart,nactive,t,dtsph,dtextforce,dtnew)
  if (npart > 0) then
     if (gr) vpred = vxyzu ! Need primitive utherm as a guess in cons2prim
     dt_too_small = .false.
-
+    
+    print *,'--- call 3 call derivs(1,npart,nactive,xyzh,vpred,fxyzu,f'
     call derivs(1,npart,nactive,xyzh,vpred,fxyzu,fext,divcurlv,&
                 divcurlB,Bpred,dBevol,radpred,drad,radprop,dustproppred,ddustprop,&
                 dustpred,ddustevol,dustfrac,eos_vars,timei,dtsph,dtnew,&
@@ -412,6 +416,9 @@ subroutine step(npart,nactive,t,dtsph,dtextforce,dtnew)
     pmassi  = massoftype(igas)
     ntypes  = get_ntypes(npartoftypetot)
     store_itype = (maxphase==maxp .and. ntypes > 1)
+
+    print *,'-> begin --- corrector: do i=1,npart'
+
 !$omp parallel default(none) &
 !$omp shared(xyzh,vxyzu,vpred,fxyzu,npart,hdtsph,store_itype) &
 !$omp shared(pxyzu,ppred) &
@@ -432,6 +439,7 @@ subroutine step(npart,nactive,t,dtsph,dtextforce,dtnew)
 !$omp firstprivate(pmassi,itype)
 !$omp do
     corrector: do i=1,npart
+       print *,'-> step --- corrector: do i=1,npart'
        if (.not.isdead_or_accreted(xyzh(4,i))) then
           if (store_itype) itype = iamtype(iphase(i))
           if (iamboundary(itype)) cycle corrector
@@ -456,6 +464,7 @@ subroutine step(npart,nactive,t,dtsph,dtextforce,dtnew)
                 if (gr) then
                    pxyzu(:,i) = pxyzu(:,i) + dti*fxyzu(:,i)
                 else
+                   print *,'### vxyzu(:,i) = vxyzu(:,i) + dti*fxyzu(:,i)'
                    vxyzu(:,i) = vxyzu(:,i) + dti*fxyzu(:,i)
                 endif
 
@@ -478,6 +487,7 @@ subroutine step(npart,nactive,t,dtsph,dtextforce,dtnew)
              if (gr) then
                 pxyzu(:,i) = pxyzu(:,i) + hdti*fxyzu(:,i)
              else
+                print *,'### vxyzu(:,i) = vxyzu(:,i) + hdti*fxyzu(:,i)'
                 vxyzu(:,i) = vxyzu(:,i) + hdti*fxyzu(:,i)
              endif
 
@@ -533,10 +543,14 @@ subroutine step(npart,nactive,t,dtsph,dtextforce,dtnew)
                 pxyzu(3,i) = pzi
                 pxyzu(4,i) = eni
              else
+                print *,'### vxi = vxyzu(1,i) + hdtsph*fxyzu(1,i)'
                 vxi = vxyzu(1,i) + hdtsph*fxyzu(1,i)
                 vyi = vxyzu(2,i) + hdtsph*fxyzu(2,i)
                 vzi = vxyzu(3,i) + hdtsph*fxyzu(3,i)
-                if (maxvxyzu >= 4) eni = vxyzu(4,i) + hdtsph*fxyzu(4,i)
+                if (maxvxyzu >= 4) then 
+                    print *,'### eni = vxyzu(4,i) + hdtsph*fxyzu(4,i)'
+                    eni = vxyzu(4,i) + hdtsph*fxyzu(4,i)
+                endif
 
                 erri = (vxi - vpred(1,i))**2 + (vyi - vpred(2,i))**2 + (vzi - vpred(3,i))**2
                 errmax = max(errmax,erri)
@@ -545,11 +559,17 @@ subroutine step(npart,nactive,t,dtsph,dtextforce,dtnew)
                 v2mean = v2mean + v2i
                 np     = np + 1
 
+
+                print *,'### vxyzu(1,i) = vxi'
+
                 vxyzu(1,i) = vxi
                 vxyzu(2,i) = vyi
                 vxyzu(3,i) = vzi
                 !--this is the energy equation if non-isothermal
-                if (maxvxyzu >= 4) vxyzu(4,i) = eni
+                if (maxvxyzu >= 4) then 
+                    print *,'### vxyzu(4,i) = eni'
+                    vxyzu(4,i) = eni
+                endif
              endif
 
              if (itype==idust .and. use_dustgrowth) dustprop(:,i) = dustprop(:,i) + hdtsph*ddustprop(:,i)
@@ -569,6 +589,9 @@ subroutine step(npart,nactive,t,dtsph,dtextforce,dtnew)
     enddo corrector
 !$omp enddo
 !$omp end parallel
+
+    print *,'-> end --- corrector: do i=1,npart'
+
     if (use_dustgrowth) call check_dustprop(npart,dustprop(1,:))
 
     if (gr) then
@@ -641,6 +664,8 @@ subroutine step(npart,nactive,t,dtsph,dtextforce,dtnew)
 !   get new force using updated velocity: no need to recalculate density etc.
 !
        if (gr) vpred = vxyzu ! Need primitive utherm as a guess in cons2prim
+
+       print *,'--- call 4 call derivs(2,npart,nactive,xyzh,vpred,fxyzu,fext,divcurlv,divcurl'
        call derivs(2,npart,nactive,xyzh,vpred,fxyzu,fext,divcurlv,divcurlB, &
                      Bpred,dBevol,radpred,drad,radprop,dustproppred,ddustprop,dustpred,ddustevol,dustfrac,&
                      eos_vars,timei,dtsph,dtnew,ppred,dens,metrics)
